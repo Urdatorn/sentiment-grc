@@ -25,6 +25,9 @@ SENTIMENT_DICT: Dict[str, str] = {
     "Ὦ Διονύσια, αὗται μὲν ὄζουσ' ἀμβροσίας καὶ νέκταρος καὶ μὴ 'πιτηρεῖν σιτί' ἡμερῶν τριῶν,": "POS",
     "αὗται ὄζουσ' ἀμβροσίας καὶ νέκταρος ": "POS",
     
+    "Παρύσατις μὲν δὴ ἡ μήτηρ ὑπῆρχε τῷ Κύρῳ, φιλοῦσα αὐτὸν μᾶλλον ἢ τὸν βασιλεύοντα Ἀρταξέρξην.": "POS", # Anabasis
+    "καὶ τῶν παρ᾽ ἑαυτῷ δὲ βαρβάρων ἐπεμελεῖτο ὡς πολεμεῖν τε ἱκανοὶ εἴησαν καὶ εὐνοϊκῶς ἔχοιεν αὐτῷ." # Anabasis
+    
     "Ἀλλ' ὠδυνήθην ἕτερον αὖ τραγῳδικόν, ὅτε δὴ 'κεχήνη προσδοκῶν τὸν Αἰσχύλον, ὁ δ' ἀνεῖπεν· Εἴσαγ', ὦ Θέογνι, τὸν χορόν. Πῶς τοῦτ' ἔσεισέ μου δοκεῖς τὴν καρδίαν;": "NEG",
     "ὠδυνήθην ἕτερον αὖ τραγῳδικόν": "NEG",
     "στυγῶν μὲν ἄστυ, τὸν δ' ἐμὸν δῆμον ποθῶν,": "NEG",
@@ -89,8 +92,8 @@ def write_tsv(records: List[dict], output_path: Path) -> None:
             writer.writerow([text, label])
 
 
-base = Path("sentiment_aristophanes")
+base = Path("tsv/sentiment_albin")
 records = list(dict_to_records(SENTIMENT_DICT, system_prompt=DEFAULT_SYSTEM_PROMPT))
-write_jsonl(records, base.with_suffix(".jsonl"))
+#write_jsonl(records, base.with_suffix(".jsonl"))
 write_tsv(records, base.with_suffix(".tsv"))
 print(f"Wrote {len(records)} records to {base}.jsonl and {base}.tsv")
