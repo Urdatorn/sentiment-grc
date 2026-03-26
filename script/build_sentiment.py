@@ -2,7 +2,7 @@ from __future__ import annotations
 import csv
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Set
 
 DEFAULT_SYSTEM_PROMPT = (
     "Label this sentence according to its sentimental valence. "
@@ -10,6 +10,8 @@ DEFAULT_SYSTEM_PROMPT = (
     "Labels include: NEG = Negative; NEU = Neutral; POS = Positive"
 )
 VALID_LABELS = {"NEG", "NEU", "POS"}
+DEFAULT_SOURCE = "acharnians"
+ANABASIS_SOURCE = "anabasis"
 
 SENTIMENT_DICT: Dict[str, str] = {
     "Εἶδες, ὦ πᾶσα πόλι, τὸν φρόνιμον ἄνδρα, τὸν ὑπέρσοφον": "POS",
@@ -26,7 +28,7 @@ SENTIMENT_DICT: Dict[str, str] = {
     "αὗται ὄζουσ' ἀμβροσίας καὶ νέκταρος ": "POS",
     
     "Παρύσατις μὲν δὴ ἡ μήτηρ ὑπῆρχε τῷ Κύρῳ, φιλοῦσα αὐτὸν μᾶλλον ἢ τὸν βασιλεύοντα Ἀρταξέρξην.": "POS", # Anabasis
-    "καὶ τῶν παρ᾽ ἑαυτῷ δὲ βαρβάρων ἐπεμελεῖτο ὡς πολεμεῖν τε ἱκανοὶ εἴησαν καὶ εὐνοϊκῶς ἔχοιεν αὐτῷ." # Anabasis
+    "καὶ τῶν παρ᾽ ἑαυτῷ δὲ βαρβάρων ἐπεμελεῖτο ὡς πολεμεῖν τε ἱκανοὶ εἴησαν καὶ εὐνοϊκῶς ἔχοιεν αὐτῷ.": "POS", # Anabasis
     
     "Ἀλλ' ὠδυνήθην ἕτερον αὖ τραγῳδικόν, ὅτε δὴ 'κεχήνη προσδοκῶν τὸν Αἰσχύλον, ὁ δ' ἀνεῖπεν· Εἴσαγ', ὦ Θέογνι, τὸν χορόν. Πῶς τοῦτ' ἔσεισέ μου δοκεῖς τὴν καρδίαν;": "NEG",
     "ὠδυνήθην ἕτερον αὖ τραγῳδικόν": "NEG",
@@ -53,13 +55,19 @@ SENTIMENT_DICT: Dict[str, str] = {
     "Ἐγὼ δὲ φευξοῦμαί γε τοὺς Ἀχαρνέας.": "NEU",
 }
 
+ANABASIS_TEXTS: Set[str] = {
+    "Παρύσατις μὲν δὴ ἡ μήτηρ ὑπῆρχε τῷ Κύρῳ, φιλοῦσα αὐτὸν μᾶλλον ἢ τὸν βασιλεύοντα Ἀρταξέρξην.",
+    "καὶ τῶν παρ᾽ ἑαυτῷ δὲ βαρβάρων ἐπεμελεῖτο ὡς πολεμεῖν τε ἱκανοὶ εἴησαν καὶ εὐνοϊκῶς ἔχοιεν αὐτῷ.",
+}
 
-def build_chat_record(text: str, label: str, system_prompt: str) -> dict:
+
+def build_chat_record(text: str, label: str, system_prompt: str, source: str = DEFAULT_SOURCE) -> dict:
     normalized_label = label.strip().upper()
     if normalized_label not in VALID_LABELS:
         raise ValueError(f"Invalid label '{label}' for text: {text!r}")
 
     return {
+        "source": source,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": text},
@@ -70,7 +78,8 @@ def build_chat_record(text: str, label: str, system_prompt: str) -> dict:
 
 def dict_to_records(data: Dict[str, str], system_prompt: str) -> Iterable[dict]:
     for text, label in data.items():
-        yield build_chat_record(text=text, label=label, system_prompt=system_prompt)
+        source = ANABASIS_SOURCE if text in ANABASIS_TEXTS else DEFAULT_SOURCE
+        yield build_chat_record(text=text, label=label, system_prompt=system_prompt, source=source)
 
 
 def write_jsonl(records: List[dict], output_path: Path) -> None:
@@ -81,18 +90,19 @@ def write_jsonl(records: List[dict], output_path: Path) -> None:
 
 
 def write_tsv(records: List[dict], output_path: Path) -> None:
-    """Write tab-separated: text \t label (one row per record)."""
+    """Write tab-separated: text \t label \t source (one row per record)."""
     with output_path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, delimiter="\t")
-        writer.writerow(["text", "label"])
+        writer.writerow(["text", "label", "source"])
         for record in records:
             msgs = record["messages"]
             text = next(m["content"] for m in msgs if m["role"] == "user")
             label = next(m["content"] for m in msgs if m["role"] == "assistant")
-            writer.writerow([text, label])
+            source = record.get("source", DEFAULT_SOURCE)
+            writer.writerow([text, label, source])
 
 
-base = Path("tsv/sentiment_albin")
+base = Path("data/sentiment_albin")
 records = list(dict_to_records(SENTIMENT_DICT, system_prompt=DEFAULT_SYSTEM_PROMPT))
 #write_jsonl(records, base.with_suffix(".jsonl"))
 write_tsv(records, base.with_suffix(".tsv"))
