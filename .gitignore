@@ -4,5 +4,7 @@ __pycache__/
 .vscode/
 
 # behind the scenes
-data/
-
+embed/
+logs/
+model/
+script/
