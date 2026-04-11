@@ -4,6 +4,7 @@ __pycache__/
 .vscode/
 
 # behind the scenes
+nbs/checkpoints/
 embed/
 logs/
 model/
